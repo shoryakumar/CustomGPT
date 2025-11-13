@@ -1,0 +1,753 @@
+openapi: 3.1.0
+info:
+  title: Biorhyme Health Chatbot Demo API
+  description: |
+    **Proof of Concept** API for health chatbot demonstration.
+
+    Features:
+    - Natural language chatbot for health queries
+    - Meal tracking and nutrition analytics
+    - Medication management
+    - Health summaries and progress tracking
+
+    **No Authentication Required** - This is a demo/POC version.
+
+    All endpoints work with a single demo user.
+  version: 1.0.0
+  contact:
+    name: Biorhyme Health
+    url: https://biorhyme.health
+    email: demo@biorhyme.health
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local development server
+  - url: https://your-domain.com/api
+    description: Production server (update with your domain)
+
+tags:
+  - name: Health
+    description: Health check and status
+  - name: Chat
+    description: Chatbot interactions
+  - name: Meals
+    description: Meal tracking and nutrition
+  - name: Medications
+    description: Medication management
+  - name: Analytics
+    description: Summaries and insights
+  - name: User
+    description: User profile
+
+paths:
+  /health/:
+    get:
+      summary: Health Check
+      description: Verify the API is running
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  message:
+                    type: string
+                    example: Biorhyme Health Chatbot Demo is running
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /chat/:
+    post:
+      summary: Chat with Bot
+      description: |
+        Send a natural language message to the health chatbot.
+
+        The bot can answer questions about:
+        - Meals and nutrition ("What did I eat today?")
+        - Nutrition goals ("Am I meeting my goals?")
+        - Medications ("What medications am I taking?")
+        - Health summaries ("Show me this week's nutrition")
+      operationId: chat
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  description: Your question or message to the chatbot
+                  example: What did I eat today?
+      responses:
+        '200':
+          description: Bot response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Your original message
+                  response:
+                    type: string
+                    description: Bot's response (may include Markdown formatting)
+                  timestamp:
+                    type: string
+                    format: date-time
+              example:
+                message: "What did I eat today?"
+                response: "**Today's Meals (2024-01-15)**\n\n**Breakfast**: Oatmeal with Berries\n  • Calories: 350 kcal\n  • Protein: 12.0g, Carbs: 58.0g, Fat: 8.0g\n\n..."
+                timestamp: "2024-01-15T12:00:00Z"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /chat/history/:
+    get:
+      summary: Get Chat History
+      description: Retrieve recent chat messages
+      operationId: chatHistory
+      tags:
+        - Chat
+      parameters:
+        - name: limit
+          in: query
+          description: Number of messages to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Chat history retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatMessage'
+
+  /meals/:
+    get:
+      summary: List Meals
+      description: Get all meals for a specified number of days
+      operationId: listMeals
+      tags:
+        - Meals
+      parameters:
+        - name: days
+          in: query
+          description: Number of days to look back
+          schema:
+            type: integer
+            default: 7
+            minimum: 1
+            maximum: 365
+      responses:
+        '200':
+          description: List of meals with totals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  meals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Meal'
+                  totals:
+                    $ref: '#/components/schemas/NutritionTotals'
+
+    post:
+      summary: Create Meal
+      description: Log a new meal entry
+      operationId: createMeal
+      tags:
+        - Meals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealCreate'
+      responses:
+        '201':
+          description: Meal created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  meal:
+                    $ref: '#/components/schemas/Meal'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /meals/{meal_id}/:
+    get:
+      summary: Get Meal
+      description: Get details of a specific meal
+      operationId: getMeal
+      tags:
+        - Meals
+      parameters:
+        - $ref: '#/components/parameters/MealId'
+      responses:
+        '200':
+          description: Meal details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+        '404':
+          description: Meal not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update Meal
+      description: Update an existing meal
+      operationId: updateMeal
+      tags:
+        - Meals
+      parameters:
+        - $ref: '#/components/parameters/MealId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealCreate'
+      responses:
+        '200':
+          description: Meal updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  meal:
+                    $ref: '#/components/schemas/Meal'
+
+    delete:
+      summary: Delete Meal
+      description: Delete a meal entry
+      operationId: deleteMeal
+      tags:
+        - Meals
+      parameters:
+        - $ref: '#/components/parameters/MealId'
+      responses:
+        '200':
+          description: Meal deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /medications/:
+    get:
+      summary: List Medications
+      description: Get all medications
+      operationId: listMedications
+      tags:
+        - Medications
+      parameters:
+        - name: active
+          in: query
+          description: Filter by active status
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: List of medications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  medications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Medication'
+
+    post:
+      summary: Add Medication
+      description: Add a new medication
+      operationId: createMedication
+      tags:
+        - Medications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicationCreate'
+      responses:
+        '201':
+          description: Medication added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  medication:
+                    $ref: '#/components/schemas/Medication'
+
+  /medications/{med_id}/:
+    get:
+      summary: Get Medication
+      description: Get details of a specific medication
+      operationId: getMedication
+      tags:
+        - Medications
+      parameters:
+        - $ref: '#/components/parameters/MedicationId'
+      responses:
+        '200':
+          description: Medication details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Medication'
+
+    put:
+      summary: Update Medication
+      description: Update an existing medication
+      operationId: updateMedication
+      tags:
+        - Medications
+      parameters:
+        - $ref: '#/components/parameters/MedicationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicationCreate'
+      responses:
+        '200':
+          description: Medication updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  medication:
+                    $ref: '#/components/schemas/Medication'
+
+    delete:
+      summary: Delete Medication
+      description: Delete a medication
+      operationId: deleteMedication
+      tags:
+        - Medications
+      parameters:
+        - $ref: '#/components/parameters/MedicationId'
+      responses:
+        '200':
+          description: Medication deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /summary/:
+    get:
+      summary: Get Health Summary
+      description: Get nutrition summary for a time period
+      operationId: getSummary
+      tags:
+        - Analytics
+      parameters:
+        - name: period
+          in: query
+          description: Time period for summary
+          schema:
+            type: string
+            enum: [today, week, month]
+            default: today
+      responses:
+        '200':
+          description: Health summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthSummary'
+
+  /profile/:
+    get:
+      summary: Get User Profile
+      description: Get demo user profile information
+      operationId: getUserProfile
+      tags:
+        - User
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /reset/:
+    post:
+      summary: Reset Demo Data
+      description: Delete all meals, medications, and chat history
+      operationId: resetDemo
+      tags:
+        - User
+      responses:
+        '200':
+          description: Demo data reset
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+components:
+  parameters:
+    MealId:
+      name: meal_id
+      in: path
+      required: true
+      description: Meal ID
+      schema:
+        type: integer
+
+    MedicationId:
+      name: med_id
+      in: path
+      required: true
+      description: Medication ID
+      schema:
+        type: integer
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_message:
+          type: string
+        bot_response:
+          type: string
+        query_type:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Meal:
+      type: object
+      properties:
+        id:
+          type: integer
+        meal_name:
+          type: string
+          example: Grilled Chicken Salad
+        meal_time:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+          example: lunch
+        calories:
+          type: number
+          format: float
+          example: 420
+        protein:
+          type: number
+          format: float
+          example: 38
+        carbs:
+          type: number
+          format: float
+          example: 25
+        fat:
+          type: number
+          format: float
+          example: 18
+        fiber:
+          type: number
+          format: float
+          example: 6
+        date:
+          type: string
+          format: date
+          example: "2024-01-15"
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    MealCreate:
+      type: object
+      required:
+        - meal_name
+      properties:
+        meal_name:
+          type: string
+          example: Grilled Salmon
+        meal_time:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+          default: breakfast
+        calories:
+          type: number
+          format: float
+          default: 0
+        protein:
+          type: number
+          format: float
+          default: 0
+        carbs:
+          type: number
+          format: float
+          default: 0
+        fat:
+          type: number
+          format: float
+          default: 0
+        fiber:
+          type: number
+          format: float
+          default: 0
+        date:
+          type: string
+          format: date
+          description: Defaults to today if not provided
+        notes:
+          type: string
+
+    Medication:
+      type: object
+      properties:
+        id:
+          type: integer
+        drug_name:
+          type: string
+          example: Metformin
+        dosage:
+          type: string
+          example: 500mg
+        frequency:
+          type: string
+          enum: [once_daily, twice_daily, three_times_daily, as_needed]
+          example: twice_daily
+        started_date:
+          type: string
+          format: date
+        notes:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    MedicationCreate:
+      type: object
+      required:
+        - drug_name
+        - dosage
+        - frequency
+      properties:
+        drug_name:
+          type: string
+          example: Aspirin
+        dosage:
+          type: string
+          example: 81mg
+        frequency:
+          type: string
+          enum: [once_daily, twice_daily, three_times_daily, as_needed]
+        notes:
+          type: string
+
+    NutritionTotals:
+      type: object
+      properties:
+        total_calories:
+          type: number
+          format: float
+        total_protein:
+          type: number
+          format: float
+        total_carbs:
+          type: number
+          format: float
+        total_fat:
+          type: number
+          format: float
+        total_fiber:
+          type: number
+          format: float
+
+    HealthSummary:
+      type: object
+      properties:
+        period:
+          type: string
+          enum: [today, week, month]
+        date_range:
+          type: object
+          properties:
+            from:
+              type: string
+              format: date
+            to:
+              type: string
+              format: date
+            days:
+              type: integer
+        meals_logged:
+          type: integer
+        totals:
+          $ref: '#/components/schemas/NutritionTotals'
+        daily_averages:
+          type: object
+          properties:
+            avg_calories:
+              type: number
+            avg_protein:
+              type: number
+            avg_carbs:
+              type: number
+            avg_fat:
+              type: number
+            avg_fiber:
+              type: number
+        goals:
+          type: object
+          properties:
+            calories:
+              type: number
+            protein:
+              type: number
+            carbs:
+              type: number
+            fat:
+              type: number
+            fiber:
+              type: number
+        progress_percentage:
+          type: object
+          properties:
+            calories:
+              type: number
+              description: Percentage of goal achieved
+            protein:
+              type: number
+            carbs:
+              type: number
+            fat:
+              type: number
+            fiber:
+              type: number
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        age:
+          type: integer
+        daily_calorie_goal:
+          type: number
+        daily_protein_goal:
+          type: number
+        daily_carbs_goal:
+          type: number
+        daily_fat_goal:
+          type: number
+        daily_fiber_goal:
+          type: number
+        health_conditions:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
