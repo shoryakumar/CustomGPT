@@ -382,3 +382,28 @@ def reset_demo(request):
         'success': True,
         'message': 'Demo data has been reset'
     })
+
+
+@api_view(['GET'])
+def privacy_policy(request):
+    """
+    GET /api/privacy/
+    Serve privacy policy
+    """
+    import os
+    from django.conf import settings
+    from django.http import HttpResponse
+    import markdown
+
+    privacy_path = os.path.join(settings.BASE_DIR, 'PRIVACY.md')
+
+    if os.path.exists(privacy_path):
+        with open(privacy_path, 'r') as f:
+            content = f.read()
+            html = markdown.markdown(content)
+            return HttpResponse(
+                f'<html><head><style>body{{max-width:800px;margin:40px auto;font-family:system-ui;line-height:1.6;padding:0 20px}}h1{{color:#2563eb}}h2{{color:#4b5563;margin-top:2em}}code{{background:#f3f4f6;padding:2px 6px;border-radius:3px}}</style></head><body>{html}</body></html>',
+                content_type='text/html'
+            )
+    else:
+        return HttpResponse('Privacy policy not found', status=404)

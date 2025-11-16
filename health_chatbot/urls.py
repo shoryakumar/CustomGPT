@@ -31,4 +31,7 @@ urlpatterns = [
 
     # Demo reset
     path('reset/', views.reset_demo, name='reset_demo'),
+
+    # Privacy policy
+    path('privacy/', views.privacy_policy, name='privacy_policy'),
 ]
