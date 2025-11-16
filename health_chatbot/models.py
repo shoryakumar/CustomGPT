@@ -6,6 +6,11 @@ from django.db import models
 from django.utils import timezone
 
 
+def get_current_date():
+    """Return current date (not datetime)"""
+    return timezone.now().date()
+
+
 class UserProfile(models.Model):
     """Demo user profile"""
     email = models.EmailField(unique=True)
@@ -51,7 +56,7 @@ class Meal(models.Model):
     fiber = models.FloatField(default=0)
 
     # Metadata
-    date = models.DateField(default=timezone.now)
+    date = models.DateField(default=get_current_date)
     created_at = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True)
 
@@ -77,7 +82,7 @@ class Medication(models.Model):
     dosage = models.CharField(max_length=100)
     frequency = models.CharField(max_length=50, choices=FREQUENCIES)
 
-    started_date = models.DateField(default=timezone.now)
+    started_date = models.DateField(default=get_current_date)
     notes = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
 
