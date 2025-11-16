@@ -20,10 +20,10 @@ info:
     email: demo@biorhyme.health
 
 servers:
+  - url: https://gpt.shoryakumar.in/api
+    description: Production server
   - url: http://localhost:8000/api
     description: Local development server
-  - url: https://your-domain.com/api
-    description: Production server (update with your domain)
 
 tags:
   - name: Health
