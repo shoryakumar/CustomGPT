@@ -44,6 +44,23 @@ def health_check(request):
     })
 
 
+@api_view(['GET'])
+def openapi_spec(request):
+    """
+    Serve OpenAPI specification
+    """
+    import os
+    from django.http import FileResponse, Http404
+    from django.conf import settings
+
+    spec_path = os.path.join(settings.BASE_DIR, 'openapi.yaml')
+
+    if os.path.exists(spec_path):
+        return FileResponse(open(spec_path, 'rb'), content_type='application/x-yaml')
+    else:
+        raise Http404("OpenAPI spec not found")
+
+
 @api_view(['POST'])
 def chat(request):
     """
